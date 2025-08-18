@@ -1,6 +1,6 @@
 namespace Project01.Models;
 
-public class Track
+public class Track : CacheEntry
 {
     public required Album Album { get; set; }
     public Artist[] Artists { get; set; } = [];

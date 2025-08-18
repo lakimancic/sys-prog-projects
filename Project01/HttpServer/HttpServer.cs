@@ -1,10 +1,11 @@
 using System.Net;
 using System.Text.Json;
+using Project01.Caches;
 using Serilog;
 
 namespace Project01.HttpServer;
 
-public class HttpServer(int port)
+public class HttpServer(int port, SpotifyCache cache)
 {
     private readonly HttpListener listener = new();
 
@@ -42,7 +43,7 @@ public class HttpServer(int port)
         }
     }
 
-    static void HandleRequest(HttpListenerContext context)
+    void HandleRequest(HttpListenerContext context)
     {
         var request = context.Request;
         string endpoint = context.Request.RemoteEndPoint?.ToString() ?? "unknown";
@@ -55,7 +56,7 @@ public class HttpServer(int port)
         var query = request.QueryString.Get("query");
         var type = request.QueryString.Get("type");
 
-        if (query == null)
+        if (string.IsNullOrEmpty(query))
         {
             BadRequest("Missing query GET parameter", context.Response);
             return;
@@ -63,6 +64,11 @@ public class HttpServer(int port)
         if (type == null)
         {
             BadRequest("Missing type GET parameter", context.Response);
+            return;
+        }
+        if (type != "album" && type != "track")
+        {
+            BadRequest("Invalid type GET parameter", context.Response);
             return;
         }
 
@@ -81,6 +87,8 @@ public class HttpServer(int port)
         response.ContentLength64 = buffer.Length;
         response.OutputStream.Write(buffer, 0, buffer.Length);
         response.Close();
+
+        Log.Warning("Http Response: Bad Request({Message})", message);
     }
 
     static void Ok(object obj, HttpListenerResponse response)
@@ -93,5 +101,7 @@ public class HttpServer(int port)
         response.ContentType = "application/json";
         response.OutputStream.Write(buffer, 0, buffer.Length);
         response.Close();
+
+        Log.Information("Http Response: Ok({ResponseData})", jsonStr);
     }
 }

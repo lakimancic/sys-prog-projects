@@ -1,4 +1,5 @@
-﻿using Project01.HttpServer;
+﻿using Project01.Caches;
+using Project01.HttpServer;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -12,6 +13,8 @@ Log.Logger = new LoggerConfiguration()
         buffered: true)
     .CreateLogger();
 
-HttpServer server = new(8080);
+using var cache = new SpotifyCache(new TimeSpan(1, 30, 0));
+
+HttpServer server = new(8080, cache);
 
 server.Start();

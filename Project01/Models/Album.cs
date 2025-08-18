@@ -1,6 +1,6 @@
 namespace Project01.Models;
 
-public class Album
+public class Album : CacheEntry
 {
     public required string AlbumType { get; set; }
     public int TotalTracks { get; set; }
