@@ -1,2 +1,17 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
+﻿using Project01.HttpServer;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .Enrich.WithThreadId()
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss}] {Level:u3} T{ThreadId} {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File("logs/server-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        buffered: true)
+    .CreateLogger();
+
+HttpServer server = new(8080);
+
+server.Start();
