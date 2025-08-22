@@ -36,11 +36,31 @@ public class SpotifyFetcher
         ConcurrentBag<List<Track>> result = [];
         var initial = FetchTracks(query);
         int total = initial.Total;
-        result.Add(initial.Items);
+        if (total <= 50)
+            return [.. result.SelectMany(tracks => tracks)];
+        int remaining = total - 50;
+        int requests = (int)Math.Ceiling(remaining / 50.0);
 
-        // TODO: Paralelizacija da se prodje sve total, 
-        // krece se od sledeci offset ako postoji (50) posto je prvi vec obradjen
-        // preporuka da koristis Countdown s ThreadPools
+        using CountdownEvent countdown = new(requests);
+
+        for (int i = 1; i <= requests; i++)
+        {
+            int offset = i * 50;
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    var batch = FetchTracks(query, offset);
+                    result.Add(batch.Items);
+                }
+                finally
+                {
+                    countdown.Signal();
+                }
+            });
+        }
+
+        countdown.Wait();
 
         return [.. result.SelectMany(tracks => tracks)];
     }
@@ -52,9 +72,31 @@ public class SpotifyFetcher
         int total = initial.Total;
         result.Add(initial.Items);
 
-        // TODO: Paralelizacija da se prodje sve total, 
-        // krece se od sledeci offset ako postoji (50) posto je prvi vec obradjen
-        // preporuka da koristis Countdown s ThreadPools
+        if (total <= 50)
+            return [.. result.SelectMany(albums => albums)];
+
+        int remaining = total - 50;
+        int requests = (int)Math.Ceiling(remaining / 50.0);
+        using CountdownEvent countdown = new(requests);
+
+        for (int i = 1; i <= requests; i++)
+        {
+            int offset = i * 50;
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    var batch = FetchAlbums(query, offset);
+                    result.Add(batch.Items);
+                }
+                finally
+                {
+                    countdown.Signal();
+                }
+            });
+        }
+
+        countdown.Wait();
 
         return [.. result.SelectMany(albums => albums)];
     }
