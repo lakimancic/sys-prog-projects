@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Project01.Caches;
+using Project01.Spotify;
 using Serilog;
 
 namespace Project01.HttpServer;
@@ -8,10 +9,10 @@ namespace Project01.HttpServer;
 public class HttpServer(int port, SpotifyCache cache)
 {
     private readonly HttpListener listener = new();
-
+    private readonly SpotifyFetcher _fetcher = new SpotifyFetcher(cache);
     public void Start()
     {
-        listener.Prefixes.Add($"http://*:{port}/");
+        listener.Prefixes.Add($"http://localhost:{port}/");
         listener.Start();
         Log.Information("Listening on port {Port}... Press Ctrl+C to stop.", port);
 
@@ -72,11 +73,17 @@ public class HttpServer(int port, SpotifyCache cache)
             return;
         }
 
-        Ok(new
+        if (type == "album")
         {
-            Query = query,
-            Type = type
-        }, context.Response);
+            
+            Ok(_fetcher.FetchAlbums(query),context.Response);
+        }
+
+        if (type == "track")
+        {
+
+            Ok(_fetcher.FetchTracks(query), context.Response);
+        }
     }
 
     static void BadRequest(string message, HttpListenerResponse response)
