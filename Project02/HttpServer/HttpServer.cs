@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Project02.Caches;
+using Project02.Spotify;
 using Serilog;
 
 namespace Project02.HttpServer;
@@ -8,10 +9,15 @@ namespace Project02.HttpServer;
 public class HttpServer(int port, SpotifyCache cache)
 {
     private readonly HttpListener listener = new();
+    private readonly SpotifyFetcher fetcher = new();
+    private static readonly JsonSerializerOptions opts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+    };
 
     public async Task Start()
     {
-        listener.Prefixes.Add($"http://*:{port}/");
+        listener.Prefixes.Add($"http://localhost:{port}/");
         listener.Start();
         Log.Information("Listening on port {Port}... Press Ctrl+C to stop.", port);
 
@@ -72,11 +78,47 @@ public class HttpServer(int port, SpotifyCache cache)
             return;
         }
 
-        await Ok(new
+        if (type == "album")
         {
-            Query = query,
-            Type = type
-        }, context.Response);
+            var albums = cache.GetAlbums(query);
+            if (albums == null)
+            {
+                try
+                {
+                    albums = await fetcher.FetchAllAlbums(query);
+                    cache.AddOrUpdateAlbumsCache(query, albums);
+                }
+                catch (Exception ex)
+                {
+                    await BadRequest(ex.Message, context.Response);
+                    return;
+                }
+            }
+            await Ok(albums, context.Response);
+            return;
+        }
+
+        if (type == "track")
+        {
+            var tracks = cache.GetTracks(query);
+            if (tracks == null)
+            {
+                try
+                {
+                    tracks = await fetcher.FetchAllTracks(query);
+                    cache.AddOrUpdateTracksCache(query, tracks);
+                }
+                catch (Exception ex)
+                {
+                    await BadRequest(ex.Message, context.Response);
+                    return;
+                }
+            }
+            await Ok(tracks, context.Response);
+            return;
+        }
+
+        await BadRequest("Invalid type GET parameter", context.Response);
     }
 
     static async Task BadRequest(string message, HttpListenerResponse response)
