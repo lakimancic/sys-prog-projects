@@ -1,5 +1,6 @@
 ﻿using Project01.Caches;
 using Project01.Models;
+using Serilog;
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Text;
@@ -12,9 +13,11 @@ public class SpotifyFetcher
     private class FetchResult<T>
     {
         public int Total { get; set; }
+        public string? Next { get; set; }
         public List<T> Items { get; set; } = [];
     }
 
+    private const int limitSize = 50;
     private readonly HttpClient httpClient;
     private readonly string accessToken;
     private static readonly JsonSerializerOptions opts = new()
@@ -36,22 +39,28 @@ public class SpotifyFetcher
         ConcurrentBag<List<Track>> result = [];
         var initial = FetchTracks(query);
         int total = initial.Total;
-        if (total <= 50)
+        result.Add(initial.Items);
+
+        if (total <= limitSize)
             return [.. result.SelectMany(tracks => tracks)];
-        int remaining = total - 50;
-        int requests = (int)Math.Ceiling(remaining / 50.0);
+        int remaining = total - limitSize;
+        int requests = (int)Math.Ceiling((double)remaining / limitSize);
 
         using CountdownEvent countdown = new(requests);
 
         for (int i = 1; i <= requests; i++)
         {
-            int offset = i * 50;
+            int offset = i * limitSize;
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 try
                 {
                     var batch = FetchTracks(query, offset);
                     result.Add(batch.Items);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Fetcher: Something went wrong: {Error}!", ex.Message);
                 }
                 finally
                 {
@@ -89,6 +98,10 @@ public class SpotifyFetcher
                     var batch = FetchAlbums(query, offset);
                     result.Add(batch.Items);
                 }
+                catch (Exception ex)
+                {
+                    Log.Error("Fetcher: Something went wrong: {Error}!", ex.Message);
+                }
                 finally
                 {
                     countdown.Signal();
@@ -103,19 +116,21 @@ public class SpotifyFetcher
 
     private FetchResult<Track> FetchTracks(string query, int offset = 0)
     {
-        string url = $"https://api.spotify.com/v1/search?q={Uri.EscapeDataString(query)}&type=track&limit=50&offset={offset}";
+        Log.Information("Fetcher: Fetching tracks with {Query} at offset {Offset}", query, offset);
+        string url = $"https://api.spotify.com/v1/search?q={Uri.EscapeDataString(query)}&type=track&limit={limitSize}&offset={offset}";
         var response = httpClient.GetAsync(url).Result;
         response.EnsureSuccessStatusCode();
 
         string json = response.Content.ReadAsStringAsync().Result;
         using var doc = JsonDocument.Parse(json);
         var tracks = doc.RootElement.GetProperty("tracks");
-        return JsonSerializer.Deserialize<FetchResult<Track>>(tracks, opts)!;
+        var result = JsonSerializer.Deserialize<FetchResult<Track>>(tracks, opts)!;
+        return result;
     }
 
     private FetchResult<Album> FetchAlbums(string query, int offset = 0)
     {
-    
+        Log.Information("Fetcher: Fetching albums with {Query} at offset {Offset}", query, offset);
         string url = $"https://api.spotify.com/v1/search?q={Uri.EscapeDataString(query)}&type=album&limit=50&offset={offset}";
         var response = httpClient.GetAsync(url).Result;
         response.EnsureSuccessStatusCode();
