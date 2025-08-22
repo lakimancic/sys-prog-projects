@@ -9,7 +9,12 @@ namespace Project01.HttpServer;
 public class HttpServer(int port, SpotifyCache cache)
 {
     private readonly HttpListener listener = new();
-    private readonly SpotifyFetcher _fetcher = new SpotifyFetcher(cache);
+    private readonly SpotifyFetcher fetcher = new();
+    private static readonly JsonSerializerOptions opts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+    };
+
     public void Start()
     {
         listener.Prefixes.Add($"http://localhost:{port}/");
@@ -67,23 +72,48 @@ public class HttpServer(int port, SpotifyCache cache)
             BadRequest("Missing type GET parameter", context.Response);
             return;
         }
-        if (type != "album" && type != "track")
-        {
-            BadRequest("Invalid type GET parameter", context.Response);
-            return;
-        }
 
         if (type == "album")
         {
-            
-            Ok(_fetcher.FetchAlbums(query),context.Response);
+            var albums = cache.GetAlbums(query);
+            if (albums == null)
+            {
+                try
+                {
+                    albums = fetcher.FetchAllAlbums(query);
+                    cache.AddOrUpdateAlbumsCache(query, albums);
+                }
+                catch (Exception ex)
+                {
+                    BadRequest(ex.Message, context.Response);
+                    return;
+                }
+            }
+            Ok(albums, context.Response);
+            return;
         }
 
         if (type == "track")
         {
-
-            Ok(_fetcher.FetchTracks(query), context.Response);
+            var tracks = cache.GetTracks(query);
+            if (tracks == null)
+            {
+                try
+                {
+                    tracks = fetcher.FetchAllTracks(query);
+                    cache.AddOrUpdateTracksCache(query, tracks);
+                }
+                catch (Exception ex)
+                {
+                    BadRequest(ex.Message, context.Response);
+                    return;
+                }
+            }
+            Ok(tracks, context.Response);
+            return;
         }
+
+        BadRequest("Invalid type GET parameter", context.Response);
     }
 
     static void BadRequest(string message, HttpListenerResponse response)
@@ -100,7 +130,7 @@ public class HttpServer(int port, SpotifyCache cache)
 
     static void Ok(object obj, HttpListenerResponse response)
     {
-        string jsonStr = JsonSerializer.Serialize(obj);
+        string jsonStr = JsonSerializer.Serialize(obj, opts);
         byte[] buffer = System.Text.Encoding.UTF8.GetBytes(jsonStr);
 
         response.StatusCode = 200;
@@ -109,6 +139,6 @@ public class HttpServer(int port, SpotifyCache cache)
         response.OutputStream.Write(buffer, 0, buffer.Length);
         response.Close();
 
-        Log.Information("Http Response: Ok({ResponseData})", jsonStr);
+        Log.Information("Http Response: Ok()");
     }
 }

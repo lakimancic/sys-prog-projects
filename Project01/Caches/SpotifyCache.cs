@@ -21,7 +21,7 @@ public class SpotifyCache : IDisposable
     public SpotifyCache(TimeSpan ttl)
     {
         timeToLive = ttl;
-        expTimer = new Timer(_ => RemoveExpired(), null, 0, (int)TimeSpan.FromMinutes(1).TotalMilliseconds);
+        expTimer = new Timer(_ => RemoveExpired(), null, 0, (int)TimeSpan.FromHours(3).TotalMilliseconds);
     }
 
     public CacheStatus AddOrUpdateTracksCache(string key, List<Track> values)
@@ -29,7 +29,7 @@ public class SpotifyCache : IDisposable
         return cachedTracks.AddOrUpdate(key,
             inkey =>
             {
-                Log.Information("Cache: {Query} added to cached tracks.");
+                Log.Information("Cache: {Query} added to cached tracks.", key);
                 return values;
             },
             (inkey, existing) =>
@@ -41,7 +41,7 @@ public class SpotifyCache : IDisposable
                 }
                 else
                 {
-                    Log.Information("Cache: {Query} cached tracks entry updated.");
+                    Log.Information("Cache: {Query} cached tracks entry updated.", key);
                     return values;
                 }
             }
@@ -53,7 +53,7 @@ public class SpotifyCache : IDisposable
         return cachedAlbums.AddOrUpdate(key,
             inkey =>
             {
-                Log.Information("Cache: {Query} added to cached albums.");
+                Log.Information("Cache: {Query} added to cached albums.", key);
                 return values;
             },
             (inkey, existing) =>
@@ -65,7 +65,7 @@ public class SpotifyCache : IDisposable
                 }
                 else
                 {
-                    Log.Information("Cache: {Query} cached albums entry updated.");
+                    Log.Information("Cache: {Query} cached albums entry updated.", key);
                     return values;
                 }
             }
@@ -166,6 +166,7 @@ public class SpotifyCache : IDisposable
         {
             if (cachedTracks.TryGetValue(key, out var values))
             {
+                Log.Information("Cache: Read tracks from cashed tracks for key {Query}", key);
                 return values;
             }
             else
@@ -186,6 +187,7 @@ public class SpotifyCache : IDisposable
         {
             if (cachedAlbums.TryGetValue(key, out var values))
             {
+                Log.Information("Cache: Read albums from cashed albums for key {Query}", key);
                 return values;
             }
             else
