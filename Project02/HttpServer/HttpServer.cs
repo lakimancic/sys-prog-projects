@@ -6,24 +6,51 @@ using Serilog;
 
 namespace Project02.HttpServer;
 
-public class HttpServer(int port, SpotifyCache cache)
+public class HttpServer
 {
-    private readonly HttpListener listener = new();
-    private readonly SpotifyFetcher fetcher = new();
+    private readonly SpotifyCache cache;
+    private readonly HttpListener listener;
+    private readonly SpotifyFetcher fetcher;
+    private readonly Thread thread;
+    private bool active;
     private static readonly JsonSerializerOptions opts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
-    public async Task Start()
+    public HttpServer(SpotifyCache cache, string address = "localhost", int port = 8080)
     {
-        listener.Prefixes.Add($"http://localhost:{port}/");
-        listener.Start();
-        Log.Information("Listening on port {Port}... Press Ctrl+C to stop.", port);
+        this.cache = cache;
+        fetcher = new();
+        listener = new();
+        listener.Prefixes.Add($"http://{address}:{port}/");
+        thread = new(ListenAsync);
+        active = false;
+    }
 
+    public void Start()
+    {
+        active = true;
+        listener.Start();
+        thread.Start();
+        Log.Information("HTTP Server: Started listening on {Url}.", listener.Prefixes.First());
+    }
+
+    public void Stop()
+    {
+        active = false;
+        thread.Interrupt();
+        thread.Join();
+        cache.ClearCachedAlbums();
+        cache.ClearCachedTracks();
+        Log.Information("HTTP Server: Stopped server.");
+    }
+
+    async void ListenAsync()
+    {
         try
         {
-            while (true)
+            while (active)
             {
                 var context = await listener.GetContextAsync();
                 _ = Task.Run(async () =>
@@ -144,6 +171,6 @@ public class HttpServer(int port, SpotifyCache cache)
         await response.OutputStream.WriteAsync(buffer);
         response.Close();
 
-        Log.Information("Http Response: Ok({ResponseData})", jsonStr);
+        Log.Information("Http Response: Ok()", jsonStr);
     }
 }

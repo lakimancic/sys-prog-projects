@@ -1,5 +1,4 @@
-﻿using Project01.Caches;
-using Project01.HttpServer;
+﻿
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -12,14 +11,3 @@ Log.Logger = new LoggerConfiguration()
         retainedFileCountLimit: 7,
         buffered: true)
     .CreateLogger();
-
-using var cache = new SpotifyCache(new TimeSpan(1, 30, 0));
-
-HttpServer server = new(cache);
-
-server.Start();
-
-while (Console.ReadKey(intercept: true).Key != ConsoleKey.Escape) ;
-
-server.Stop();
-Log.CloseAndFlush();

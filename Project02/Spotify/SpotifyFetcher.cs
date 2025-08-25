@@ -93,10 +93,11 @@ public class SpotifyFetcher
         string url = $"https://api.spotify.com/v1/search?q={Uri.EscapeDataString(query)}&type=track&limit={limitSize}&offset={offset}";
         var response = await httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
-
+        // Log.Information("Fetcher: Between fetching tracks with {Query} at offset {Offset}", query, offset);
         string json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
         var tracks = doc.RootElement.GetProperty("tracks");
+        // Log.Information("Fetcher: After fetching tracks with {Query} at offset {Offset}", query, offset);
         return JsonSerializer.Deserialize<FetchResult<Track>>(tracks, opts)!;
     }
 

@@ -6,24 +6,51 @@ using Serilog;
 
 namespace Project01.HttpServer;
 
-public class HttpServer(int port, SpotifyCache cache)
+public class HttpServer
 {
-    private readonly HttpListener listener = new();
-    private readonly SpotifyFetcher fetcher = new();
+    private readonly SpotifyCache cache;
+    private readonly HttpListener listener;
+    private readonly SpotifyFetcher fetcher;
+    private readonly Thread thread;
+    private bool active;
     private static readonly JsonSerializerOptions opts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
 
+    public HttpServer(SpotifyCache cache, string address = "localhost", int port = 8080)
+    {
+        this.cache = cache;
+        fetcher = new();
+        listener = new();
+        listener.Prefixes.Add($"http://{address}:{port}/");
+        thread = new(Listen);
+        active = false;
+    }
+
     public void Start()
     {
-        listener.Prefixes.Add($"http://localhost:{port}/");
+        active = true;
         listener.Start();
-        Log.Information("Listening on port {Port}... Press Ctrl+C to stop.", port);
+        thread.Start();
+        Log.Information("HTTP Server: Started listening on {Url}.", listener.Prefixes.First());
+    }
 
+    public void Stop()
+    {
+        active = false;
+        thread.Interrupt();
+        thread.Join();
+        cache.ClearCachedAlbums();
+        cache.ClearCachedTracks();
+        Log.Information("HTTP Server: Stopped server.");
+    }
+
+    void Listen()
+    {
         try
         {
-            while (true)
+            while (active)
             {
                 var context = listener.GetContext();
                 ThreadPool.QueueUserWorkItem(state =>
@@ -38,6 +65,10 @@ public class HttpServer(int port, SpotifyCache cache)
                     }
                 }, context);
             }
+        }
+        catch (ThreadInterruptedException)
+        {
+            Log.Information("HTTP listener thread interrupted for shutdown.");
         }
         catch (HttpListenerException ex)
         {
