@@ -29,7 +29,7 @@ public class SpotifyCache : IDisposable
         return cachedTracks.AddOrUpdate(key,
             inkey =>
             {
-                Log.Information("Cache: {Query} added to cached tracks.");
+                Log.Information("Cache: {Query} added to cached tracks.", key);
                 return values;
             },
             (inkey, existing) =>
@@ -41,7 +41,7 @@ public class SpotifyCache : IDisposable
                 }
                 else
                 {
-                    Log.Information("Cache: {Query} cached tracks entry updated.");
+                    Log.Information("Cache: {Query} cached tracks entry updated.", key);
                     return values;
                 }
             }
@@ -53,7 +53,7 @@ public class SpotifyCache : IDisposable
         return cachedAlbums.AddOrUpdate(key,
             inkey =>
             {
-                Log.Information("Cache: {Query} added to cached albums.");
+                Log.Information("Cache: {Query} added to cached albums.", key);
                 return values;
             },
             (inkey, existing) =>
@@ -65,7 +65,7 @@ public class SpotifyCache : IDisposable
                 }
                 else
                 {
-                    Log.Information("Cache: {Query} cached albums entry updated.");
+                    Log.Information("Cache: {Query} cached albums entry updated.", key);
                     return values;
                 }
             }

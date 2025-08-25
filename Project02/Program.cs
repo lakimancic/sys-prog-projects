@@ -15,6 +15,11 @@ Log.Logger = new LoggerConfiguration()
 
 using var cache = new SpotifyCache(new TimeSpan(1, 30, 0));
 
-HttpServer server = new(8080, cache);
+HttpServer server = new(cache);
 
-await server.Start();
+server.Start();
+
+while (Console.ReadKey(intercept: true).Key != ConsoleKey.Escape) ;
+
+server.Stop();
+Log.CloseAndFlush();
