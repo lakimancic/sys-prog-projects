@@ -1,4 +1,5 @@
 ﻿
+using Project03.Reactive;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -11,3 +12,17 @@ Log.Logger = new LoggerConfiguration()
         retainedFileCountLimit: 7,
         buffered: true)
     .CreateLogger();
+
+HttpServer server = new();
+
+ResultObserver observer = new();
+var subscription = server.Subscribe(observer);
+
+server.Start();
+
+while (Console.ReadKey(intercept: true).Key != ConsoleKey.Escape) ;
+
+server.Stop();
+subscription.Dispose();
+
+Log.CloseAndFlush();

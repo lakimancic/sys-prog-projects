@@ -85,6 +85,12 @@ public class HttpServer
             request.HttpMethod,
             request.Url?.PathAndQuery,
             endpoint);
+        
+        if (request.HttpMethod != "GET")
+        {
+            MethodNotAllowed(context.Response);
+            return;
+        }
 
         var query = request.QueryString.Get("query");
         var type = request.QueryString.Get("type");
@@ -146,6 +152,15 @@ public class HttpServer
         }
 
         await BadRequest("Invalid type GET parameter", context.Response);
+    }
+
+    static void MethodNotAllowed(HttpListenerResponse response)
+    {
+        response.StatusCode = 405;
+        response.ContentLength64 = 0;
+        response.Close();
+
+        Log.Warning("Http Response: Method Not Allowed()");
     }
 
     static async Task BadRequest(string message, HttpListenerResponse response)
