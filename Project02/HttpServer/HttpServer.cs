@@ -123,7 +123,7 @@ public class HttpServer
                 }
                 catch (Exception ex)
                 {
-                    await BadRequest(ex.Message, context.Response);
+                    await InternalServerError(ex.Message, context.Response);
                     return;
                 }
             }
@@ -143,7 +143,7 @@ public class HttpServer
                 }
                 catch (Exception ex)
                 {
-                    await BadRequest(ex.Message, context.Response);
+                    await InternalServerError(ex.Message, context.Response);
                     return;
                 }
             }
@@ -173,6 +173,18 @@ public class HttpServer
         response.Close();
 
         Log.Warning("Http Response: Bad Request({Message})", message);
+    }
+
+    static async Task InternalServerError(string message, HttpListenerResponse response)
+    {
+        byte[] buffer = System.Text.Encoding.UTF8.GetBytes(message);
+
+        response.StatusCode = 500;
+        response.ContentLength64 = buffer.Length;
+        await response.OutputStream.WriteAsync(buffer);
+        response.Close();
+
+        Log.Warning("Http Response: Internal Server Error({Message})", message);
     }
 
     static async Task Ok(object obj, HttpListenerResponse response)
