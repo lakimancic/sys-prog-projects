@@ -105,7 +105,7 @@ public class HttpServer : IObservable<HttpServerResult>
         }
         catch (Exception ex)
         {
-            BadRequest(ex.Message, context.Response);
+            InternalServerError(ex.Message, context.Response);
             observers.OnError(ex);
         }
     }
@@ -137,6 +137,18 @@ public class HttpServer : IObservable<HttpServerResult>
         response.Close();
 
         Log.Warning("Http Response: Bad Request({Message})", message);
+    }
+
+    public static void InternalServerError(string message, HttpListenerResponse response)
+    {
+        byte[] buffer = System.Text.Encoding.UTF8.GetBytes(message);
+
+        response.StatusCode = 500;
+        response.ContentLength64 = buffer.Length;
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.Close();
+
+        Log.Warning("Http Response: Internal Server Error({Message})", message);
     }
 
     public static void Ok(object obj, HttpListenerResponse response)
