@@ -10,4 +10,5 @@ public class Review
     public int MyProperty { get; set; }
     public required User User { get; set; }
     public required string[] PossibleLanguages { get; set; }
+
 }
