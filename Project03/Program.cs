@@ -15,14 +15,18 @@ Log.Logger = new LoggerConfiguration()
 
 HttpServer server = new();
 
+var yelpFetch = new YelpFetchCall();
+var subscriptionFetcher = server.Subscribe(yelpFetch);
+
 ResultObserver observer = new();
-var subscription = server.Subscribe(observer);
+var subscriptionObserver = server.Subscribe(observer);
 
 server.Start();
 
 while (Console.ReadKey(intercept: true).Key != ConsoleKey.Escape) ;
 
 server.Stop();
-subscription.Dispose();
+subscriptionObserver.Dispose();
+subscriptionFetcher.Dispose();
 
 Log.CloseAndFlush();

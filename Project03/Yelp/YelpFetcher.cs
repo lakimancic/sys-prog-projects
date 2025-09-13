@@ -12,6 +12,7 @@ public class YelpFetcher
     {
         public int Total { get; set; }
         public List<T> Reviews { get; set; } = [];
+        public List<string>? Possible_Languages { get; set; }
     }
 
     private const int limitSize = 50;
@@ -73,14 +74,14 @@ public class YelpFetcher
     {
         Log.Information("YelpFetcher: Fetching reviews for {BusinessId} at offset {Offset}", id, offset);
 
-        var url = $"https://api.yelp.com/v3/businesses/{id}/reviews?limit={limitSize}&offset={offset}";
+        //var url = $"https://api.yelp.com/v3/businesses/{id}/reviews?limit={limitSize}&offset={offset}";
+        var url = $"http://localhost:5000/v3/businesses/{id}/reviews?limit={limitSize}&offset={offset}";
         var response = httpClient.GetAsync(url).Result;
         response.EnsureSuccessStatusCode();
 
         string json = response.Content.ReadAsStringAsync().Result;
         using var doc = JsonDocument.Parse(json);
-        var reviews = doc.RootElement.GetProperty("reviews");
-        var result = JsonSerializer.Deserialize<FetchResult<Review>>(reviews, opts)!;
+        var result = JsonSerializer.Deserialize<FetchResult<Review>>(json, opts)!;
         return result;
     }
 }

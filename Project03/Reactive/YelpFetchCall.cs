@@ -36,6 +36,19 @@ public class YelpFetchCall : IObserver<HttpServerResult>, IObservable<YelpResult
             try
             {
                 var result = yelpFetcher.FetchAllReviews(value.RestaurantId);
+
+                Console.WriteLine($"\nReviews for {value.RestaurantId}");
+                foreach (var r in result)
+                {
+                    Console.WriteLine("\n");
+                    Console.WriteLine($"Id: {r.Id}");
+                    Console.WriteLine($"User: {r.User?.Name}");
+                    Console.WriteLine($"Rating: {r.Rating}");
+                    Console.WriteLine($"Text: {r.Text}");
+                    Console.WriteLine($"Time: {r.TimeCreated}");
+                    Console.WriteLine();
+                }
+
                 observers.OnNext(new YelpResult
                 {
                     Context = value.Context,
