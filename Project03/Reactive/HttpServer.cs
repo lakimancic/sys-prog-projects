@@ -91,6 +91,7 @@ public class HttpServer : IObservable<HttpServerResult>
 
             var id = request.QueryString.Get("id");
 
+
             if (string.IsNullOrEmpty(id))
             {
                 BadRequest("Missing id GET parameter", context.Response);
