@@ -2,7 +2,7 @@ using Serilog;
 
 namespace Project03.Reactive;
 
-public class ResultObserver : IObserver<HttpServerResult>
+public class ResultObserver : IObserver<TopicModelerResult>
 {
     public void OnCompleted()
     {
@@ -14,12 +14,13 @@ public class ResultObserver : IObserver<HttpServerResult>
         Log.Error("ResultObserver Error: {Error}", error.Message);
     }
 
-    void IObserver<HttpServerResult>.OnNext(HttpServerResult value)
+    void IObserver<TopicModelerResult>.OnNext(TopicModelerResult value)
     {
-        Log.Information("ResultObserver: Result is {Result}", value.RestaurantId);
+        Log.Information("ResultObserver: Result is {Result} reviews", value.Reviews.Count);
         HttpServer.Ok(new
         {
-            Id = value.RestaurantId
+            value.Reviews,
+            value.Topics
         }, value.Context.Response);
     }
 }

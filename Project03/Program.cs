@@ -18,8 +18,11 @@ HttpServer server = new();
 var yelpFetch = new YelpFetchCall();
 var subscriptionFetcher = server.Subscribe(yelpFetch);
 
-ResultObserver observer = new();
-var subscriptionObserver = server.Subscribe(observer);
+var topicModeler = new TopicModeler();
+var subscritionTopics = yelpFetch.Subscribe(topicModeler);
+
+var observer = new ResultObserver();
+var subscriptionObserver = topicModeler.Subscribe(observer);
 
 server.Start();
 
@@ -27,6 +30,7 @@ while (Console.ReadKey(intercept: true).Key != ConsoleKey.Escape) ;
 
 server.Stop();
 subscriptionObserver.Dispose();
+subscritionTopics.Dispose();
 subscriptionFetcher.Dispose();
 
 Log.CloseAndFlush();
