@@ -7,6 +7,7 @@ using Microsoft.ML.Transforms.Text;
 using System.Reactive.Concurrency;
 using Project03.Utils;
 using System.Text.RegularExpressions;
+using System.Reactive.Disposables;
 
 namespace Project03.Reactive;
 
@@ -101,7 +102,10 @@ public class TopicModeler : IObserver<YelpResult>, IObservable<TopicModelerResul
 
     public IDisposable Subscribe(IObserver<TopicModelerResult> observer)
     {
-        throw new NotImplementedException();
+        if (!observers.Contains(observer))
+            observers.Add(observer);
+
+        return Disposable.Create(() => observers.Remove(observer));
     }
 
     public List<ReviewTopicResult> GetTopics(List<Review> reviews)
@@ -109,19 +113,35 @@ public class TopicModeler : IObserver<YelpResult>, IObservable<TopicModelerResul
         var list = reviews
             .Where(r => !string.IsNullOrWhiteSpace(r.Text))
             .Select(r => new ReviewData { Id = r.Id, Text = r.Text.Trim() })
+            .Where(r => r.Text.Length > 3)
             .ToList();
 
         if (list.Count == 0) return [];
 
         var data = mlContext.Data.LoadFromEnumerable(list);
 
-        var pipeline = mlContext.Transforms.Text.FeaturizeText(
-            outputColumnName: "Ngrams",
-            inputColumnName: nameof(Review.Text))
+        var pipeline = mlContext.Transforms.Text.NormalizeText(
+            outputColumnName: "TextNorm",
+            inputColumnName: nameof(ReviewData.Text),
+            caseMode: TextNormalizingEstimator.CaseMode.Lower,
+            keepDiacritics: false,
+            keepPunctuations: false,
+            keepNumbers: false)
+        .Append(mlContext.Transforms.Text.TokenizeIntoWords("Tokens", "TextNorm"))
+        .Append(mlContext.Transforms.Text.RemoveDefaultStopWords("TokensClean", "Tokens"))
+        .Append(mlContext.Transforms.Conversion.MapValueToKey(
+            "TokensKeyed", 
+            "TokensClean", 
+            keyOrdinality: Microsoft.ML.Transforms.ValueToKeyMappingEstimator.KeyOrdinality.ByOccurrence))
+        .Append(mlContext.Transforms.Text.ProduceNgrams(
+            "Ngrams", 
+            "TokensKeyed", 
+            ngramLength: 1,
+            useAllLengths: true))
         .Append(mlContext.Transforms.Text.LatentDirichletAllocation(
-            outputColumnName: "TopicVector",
-            inputColumnName: "Ngrams",
-            numberOfTopics: numberOfTopics,
+            "TopicVector", 
+            "Ngrams", 
+            numberOfTopics, 
             maximumNumberOfIterations: 100));
 
         var model = pipeline.Fit(data);
