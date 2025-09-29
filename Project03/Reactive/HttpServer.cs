@@ -43,7 +43,7 @@ public class HttpServer : IObservable<HttpServerResult>
     public void Stop()
     {
         active = false;
-        thread.Interrupt();
+        listener.Stop();
         thread.Join();
         Log.Information("HTTP Server: Stopped server.");
     }
@@ -54,16 +54,26 @@ public class HttpServer : IObservable<HttpServerResult>
         {
             while (active)
             {
-                var context = listener.GetContext();
+                HttpListenerContext? context;
+                try
+                {
+                    context = listener.GetContext();
+                }
+                catch (HttpListenerException ex)
+                {
+                    Log.Warning("HTTP listener exception: {Error}", ex.Message);
+                    break;
+                }
+
                 scheduler.Schedule(() =>
                 {
                     HandleRequest(context);
                 });
             }
         }
-        catch (HttpListenerException ex)
+        catch (Exception ex)
         {
-            Log.Error("HTTP listener error: {Error}", ex.Message);
+            Log.Error("Fatal listener loop error: {Error}", ex);
         }
         finally
         {

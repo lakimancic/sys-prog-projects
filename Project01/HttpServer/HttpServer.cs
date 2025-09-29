@@ -39,7 +39,7 @@ public class HttpServer
     public void Stop()
     {
         active = false;
-        thread.Interrupt();
+        listener.Stop();
         thread.Join();
         cache.ClearCachedAlbums();
         cache.ClearCachedTracks();
@@ -52,7 +52,17 @@ public class HttpServer
         {
             while (active)
             {
-                var context = listener.GetContext();
+                HttpListenerContext? context;
+                try
+                {
+                    context = listener.GetContext();
+                }
+                catch (HttpListenerException ex)
+                {
+                    Log.Warning("HTTP listener exception: {Error}", ex.Message);
+                    break;
+                }
+
                 ThreadPool.QueueUserWorkItem(state =>
                 {
                     try
@@ -65,14 +75,6 @@ public class HttpServer
                     }
                 }, context);
             }
-        }
-        catch (ThreadInterruptedException)
-        {
-            Log.Information("HTTP listener thread interrupted for shutdown.");
-        }
-        catch (HttpListenerException ex)
-        {
-            Log.Error("HTTP listener error: {Error}", ex.Message);
         }
         finally
         {
