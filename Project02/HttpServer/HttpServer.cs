@@ -11,7 +11,8 @@ public class HttpServer
     private readonly SpotifyCache cache;
     private readonly HttpListener listener;
     private readonly SpotifyFetcher fetcher;
-    private readonly Thread thread;
+    private Task? listenerTask;
+    private CancellationTokenSource? cts;
     private bool active;
     private static readonly JsonSerializerOptions opts = new()
     {
@@ -24,35 +25,45 @@ public class HttpServer
         fetcher = new();
         listener = new();
         listener.Prefixes.Add($"http://{address}:{port}/");
-        thread = new(ListenAsync);
         active = false;
     }
 
     public void Start()
     {
         active = true;
+        cts = new();
         listener.Start();
-        thread.Start();
+        listenerTask = Task.Run(() => ListenAsync(cts.Token));
         Log.Information("HTTP Server: Started listening on {Url}.", listener.Prefixes.First());
     }
 
     public void Stop()
     {
         active = false;
-        thread.Interrupt();
-        thread.Join();
+        listener.Stop();
+        listenerTask?.Wait();
         cache.ClearCachedAlbums();
         cache.ClearCachedTracks();
         Log.Information("HTTP Server: Stopped server.");
     }
 
-    async void ListenAsync()
+    async void ListenAsync(CancellationToken token)
     {
         try
         {
-            while (active)
+            while (active && !token.IsCancellationRequested)
             {
-                var context = await listener.GetContextAsync();
+                HttpListenerContext? context;
+                try
+                {
+                    context = await listener.GetContextAsync();
+                }
+                catch (HttpListenerException ex)
+                {
+                    Log.Warning("HTTP listener exception: {Error}", ex.Message);
+                    break;
+                }
+
                 _ = Task.Run(async () =>
                 {
                     try
@@ -66,9 +77,9 @@ public class HttpServer
                 });
             }
         }
-        catch (HttpListenerException ex)
+        catch (Exception ex)
         {
-            Log.Error("HTTP listener error: {Error}", ex.Message);
+            Log.Error("Fatal listener loop error: {Error}", ex);
         }
         finally
         {
