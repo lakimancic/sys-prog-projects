@@ -33,21 +33,22 @@ public class HttpServer
         active = true;
         cts = new();
         listener.Start();
-        listenerTask = Task.Run(() => ListenAsync(cts.Token));
+        listenerTask = Task.Factory.StartNew(() => ListenAsync(cts.Token), TaskCreationOptions.LongRunning);
         Log.Information("HTTP Server: Started listening on {Url}.", listener.Prefixes.First());
     }
 
-    public void Stop()
+    public async Task StopAsync()
     {
         active = false;
         listener.Stop();
-        listenerTask?.Wait();
+        if (listenerTask != null)
+            await listenerTask;
         cache.ClearCachedAlbums();
         cache.ClearCachedTracks();
         Log.Information("HTTP Server: Stopped server.");
     }
 
-    async void ListenAsync(CancellationToken token)
+    async Task ListenAsync(CancellationToken token)
     {
         try
         {
@@ -56,7 +57,7 @@ public class HttpServer
                 HttpListenerContext? context;
                 try
                 {
-                    context = await listener.GetContextAsync();
+                    context = await listener.GetContextAsync().WaitAsync(token);
                 }
                 catch (HttpListenerException ex)
                 {
