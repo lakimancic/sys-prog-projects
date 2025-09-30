@@ -21,5 +21,5 @@ server.Start();
 
 while (Console.ReadKey(intercept: true).Key != ConsoleKey.Escape) ;
 
-server.Stop();
+await server.StopAsync();
 Log.CloseAndFlush();
