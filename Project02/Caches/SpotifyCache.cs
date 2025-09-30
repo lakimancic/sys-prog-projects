@@ -21,7 +21,7 @@ public class SpotifyCache : IDisposable
     public SpotifyCache(TimeSpan ttl)
     {
         timeToLive = ttl;
-        expTimer = new Timer(_ => RemoveExpired(), null, 0, (int)TimeSpan.FromHours(3).TotalMilliseconds);
+        expTimer = new Timer(_ => RemoveExpired(), null, 0, (int)TimeSpan.FromMinutes(10).TotalMilliseconds);
     }
 
     public CacheStatus AddOrUpdateTracksCache(string key, List<Track> values)
