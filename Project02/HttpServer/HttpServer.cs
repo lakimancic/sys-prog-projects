@@ -40,9 +40,10 @@ public class HttpServer
     public async Task StopAsync()
     {
         active = false;
-        listener.Stop();
+        cts?.Cancel();
         if (listenerTask != null)
             await listenerTask;
+        listener.Stop();
         cache.ClearCachedAlbums();
         cache.ClearCachedTracks();
         Log.Information("HTTP Server: Stopped server.");
@@ -77,6 +78,13 @@ public class HttpServer
                     }
                 });
             }
+        }
+        catch (OperationCanceledException ex)
+        {
+            if (token.IsCancellationRequested)
+                Log.Warning("Listener is cancelled");
+            else
+                Log.Error("Listener task canceled error: {Error}", ex);
         }
         catch (Exception ex)
         {
