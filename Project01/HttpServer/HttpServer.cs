@@ -76,6 +76,10 @@ public class HttpServer
                 }, context);
             }
         }
+        catch (Exception ex)
+        {
+            Log.Error("Fatal listener loop error: {Error}", ex);
+        }
         finally
         {
             listener.Stop();

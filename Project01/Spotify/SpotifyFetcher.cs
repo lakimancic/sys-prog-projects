@@ -131,7 +131,7 @@ public class SpotifyFetcher
     private FetchResult<Album> FetchAlbums(string query, int offset = 0)
     {
         Log.Information("Fetcher: Fetching albums with {Query} at offset {Offset}", query, offset);
-        string url = $"https://api.spotify.com/v1/search?q={Uri.EscapeDataString(query)}&type=album&limit=50&offset={offset}";
+        string url = $"https://api.spotify.com/v1/search?q={Uri.EscapeDataString(query)}&type=album&limit={limitSize}&offset={offset}";
         var response = httpClient.GetAsync(url).Result;
         response.EnsureSuccessStatusCode();
 
