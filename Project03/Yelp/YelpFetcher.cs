@@ -17,7 +17,7 @@ public class YelpFetcher
 
     private const int limitSize = 50;
     private readonly HttpClient httpClient;
-    readonly string accessToken = "[REDACTED]";
+    readonly string accessToken;
     private static readonly JsonSerializerOptions opts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
@@ -26,6 +26,7 @@ public class YelpFetcher
     public YelpFetcher()
     {
         httpClient = new HttpClient();
+        accessToken = Environment.GetEnvironmentVariable("ACCESS_TOKEN") ?? "";
         httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
     }
 

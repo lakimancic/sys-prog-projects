@@ -24,12 +24,14 @@ public class SpotifyFetcher
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
-    readonly string clientId = "[REDACTED]";
-    readonly string clientSecret = "[REDACTED]";
+    readonly string clientId;
+    readonly string clientSecret;
 
     public SpotifyFetcher()
     {
         httpClient = new HttpClient();
+        clientId = Environment.GetEnvironmentVariable("CLIENT_ID") ?? "";
+        clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET") ?? "";
         accessToken = GetSpotifyToken(clientId, clientSecret);
         httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
     }

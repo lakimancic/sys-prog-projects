@@ -1,7 +1,9 @@
 ﻿
+using DotNetEnv;
 using Project03.Reactive;
 using Serilog;
 
+Env.Load();
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.WithThreadId()

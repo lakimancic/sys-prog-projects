@@ -1,7 +1,9 @@
-﻿using Project01.Caches;
+﻿using DotNetEnv;
+using Project01.Caches;
 using Project01.HttpServer;
 using Serilog;
 
+Env.Load();
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
     .Enrich.WithThreadId()
